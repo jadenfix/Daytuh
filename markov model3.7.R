@@ -17,11 +17,16 @@ data$mktvaluegrossfeddebt <- log(data$mktvaluegrossfeddebt)
 data$m1 <- log(data$m1)
 data$m2 <- log(data$m2)
 
-data$date <- as.Date(data$date, format="%m/%d/%Y")
-# last 3 rows gone
+data$date <- as.Date(data$date, format = "%d-%b-%Y")
+# pre-regression  tests 
+
+cor_matrix <- cor(time_series_data)
+print(cor_matrix)
+#write.csv(cor_matrix, file = "correlation_matrix.csv")
 
 #as ts 
 time_series_data <- xts(data[, -1], order.by = data$date)
+any(is.na(time_series_data))
 library(MSwM)
 olsDJ <- lm(DJ ~ spdividend + spearnings + cpi + LRIR + ffrate + CPIrent + mktyield1yr + mktyield3yr + 
                         mktyield5yr + mktyield10yr + mktyield20yr + employeecomp + PCE + PS + newhousingunits + mktvalueprivatedebt +
@@ -37,6 +42,28 @@ olsSP <- lm(spprice ~ spdividend + spearnings + cpi + LRIR + ffrate +
               incomeonassets, data = time_series_data)
 summary(olsSP)
 summary(olsDJ)
+
+ARSP <- ar(time_series_data$spprice, order.max=1)
+print(ARSP$order)
+print(ARSP$ar)
+#install.packages("tseries")
+library(tseries)
+#install.packages("sandwich")
+library(sandwich)
+
+
+plot(residuals(olsSP), xlab = "Time", ylab = "Residuals", main = "Residuals Plot OLS SP")
+plot(residuals(olsDJ), xlab = "Time", ylab = "Residuals", main = "Residuals Plot OLS DJ")
+
+#install.packages(car)
+library(car)
+
+
+vif_valuesDJ <- car::vif(olsDJ)
+vif_valuesSP <- car::vif(olsSP)
+
+print(vif_valuesDJ)
+print(vif_valuesSP)
 #k=2 regimes, 10 vars + one intercept =27 + 1 for volatility = 28
 msDJ2 <- msmFit(olsDJ, k=2, sw=rep(TRUE, 28))
 msDJ3 <- msmFit(olsDJ, k=3, sw=rep(TRUE, 28))
